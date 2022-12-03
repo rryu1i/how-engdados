@@ -2,6 +2,9 @@ import requests
 import logging
 from abc import abstractmethod
 import datetime
+from typing import List
+import json
+
 
 logger = logging.getLogger(__name__)  # nome do script (ingestao)
 logging.basicConfig(level=logging.INFO)
@@ -58,3 +61,40 @@ class TradesApi(MercadoBitcoinApi):
             endpoint = f"{self.base_endpoint}/{self.coin}/{self.type}"
 
         return endpoint
+
+
+class DataTypeNotSupportedForIngestionException(Exception):
+    def __init__(self, *args: object) -> None:
+        self.data = data
+        self.message = f"Data type {type(data)} is not supported for ingestion"
+        super().__init__(self.message)
+
+
+class DataWriter:
+
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
+
+    def _write_row(self, row: str) -> None:
+        with open(self.filename, "a") as f:  # append
+            f.write(row)
+
+    def write(self, data: [List, dict]):  # pois TradesApi nos retorna um lista de dicts, diferente de DaySummary que e so dict
+        if isinstance(data, dict):  # verifica se o objeto que e passado e uma instancia de uma determinada class
+            self._write_row(json.dumps(data) + "\n")
+        elif isinstance(data,list):
+            for element in data:
+                self.write(element)  # funcao recursiva, e se tiver uma lista dentro de uma lista?
+        else:
+            raise DataTypeNotSupportedForIngestionException(data)
+
+
+
+data = DaySummaryApi("BTC").get_data(date=datetime.date(2021,6,21))
+writer = DataWriter("day_summary.json")
+writer.write(data)
+
+
+data = TradesApi("BTC").get_data()
+writer = DataWriter("trades.json")
+writer.write(data)

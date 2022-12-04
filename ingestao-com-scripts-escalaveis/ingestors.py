@@ -68,14 +68,3 @@ class DaySummaryIngestor(DataIngestor):
                 # atualizar a data
             self._update_checkpoint(date + datetime.timedelta(days=1))
 
-
-class TradesIngestor(DataIngestor):
-    def ingest(self) -> None:
-        date = self._get_checkpoint()
-        if date < datetime.date.today():
-            for coin in self.coins:
-                api = TradesApi(coin=coin)
-                data = api.get_data(date=date)
-                self.writer(coin=coin, api=api.type).write(data)
-                # atualizar a data
-            self._update_checkpoint(date + datetime.timedelta(days=1))
